@@ -1,10 +1,13 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
 
-class Config:
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", 8000))
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-settings = Config()
+    hh_user_agent: str = "ResumeMarketValue/1.0 (hackathon@tbank.local)"
+    hh_base_url: str = "https://api.hh.ru"
+    vacancies_per_fetch: int = 100
+    use_mock_on_hh_failure: bool = True
+
+
+settings = Settings()
