@@ -13,72 +13,108 @@ logger = logging.getLogger(__name__)
 
 
 def _headers() -> dict[str, str]:
-    ua = settings.hh_user_agent
     return {
-        "User-Agent": ua,
-        "HH-User-Agent": ua,
+        "User-Agent": settings.hh_user_agent,
         "Accept": "application/json",
     }
 
 
-def _hh_error_note(status: int, body: str) -> str:
+def _trudvsem_error_note(status: int, body: str) -> str:
     try:
         data = json.loads(body)
-        errs = data.get("errors") or []
-        if errs:
-            parts: list[str] = []
-            for e in errs[:4]:
-                if not isinstance(e, dict):
-                    continue
-                t = str(e.get("type", "")).strip()
-                v = e.get("value")
-                if v is not None and str(v).strip():
-                    parts.append(f"{t} ({v})" if t else str(v))
-                elif t:
-                    parts.append(t)
-            if parts:
-                return f"hh.ru HTTP {status}: " + "; ".join(parts)
-        desc = (data.get("description") or "").strip()
-        if desc:
-            return f"hh.ru HTTP {status}: {desc}"
+        meta = data.get("meta") or {}
+        err = meta.get("error")
+        if err:
+            return f"trudvsem.ru HTTP {status}: {err}"
     except Exception:
         pass
-    return f"hh.ru HTTP {status}."
+    return f"trudvsem.ru HTTP {status}."
+
+
+def _normalize_vacancy(v: dict[str, Any]) -> dict[str, Any]:
+    """Маппинг полей ответа Трудвсем в структуру HeadHunter."""
+    salary_min = v.get("salary_min")
+    salary_max = v.get("salary_max")
+
+    salary_dict = None
+    if salary_min or salary_max:
+        salary_dict = {
+            "from": salary_min if salary_min else None,
+            "to": salary_max if salary_max else None,
+            "currency": "RUR",
+            "gross": None
+        }
+
+    # Защита от AttributeError: проверяем, что company является словарем
+    company_data = v.get("company")
+    company_name = company_data.get("name", "Работодатель") if isinstance(company_data, dict) else "Работодатель"
+
+    requirement = v.get("requirement", {}).get("education", "")
+    duty = v.get("duty", "")
+
+    key_skills = []
+    if v.get("requirement", {}).get("qualifications"):
+        key_skills.append({"name": v["requirement"]["qualifications"]})
+
+    return {
+        "id": str(v.get("id", "")),
+        "name": v.get("vacancy-name", "Вакансия"),
+        "salary": salary_dict,
+        "employer": {"name": company_name},
+        "snippet": {
+            "requirement": requirement or None,
+            "responsibility": duty or None
+        },
+        "key_skills": key_skills,
+        "alternate_url": v.get("vac_url", ""),
+        "experience": {"name": v.get("experience", "Не указан")},
+        "area": {"name": v.get("region", {}).get("name", "Россия")}
+    }
 
 
 def _vacancy_param_variants(
-    *,
-    text: str,
-    area: str | None,
-    experience: str | None,
-    per_page: int,
-    page: int,
+        *,
+        text: str,
+        area: str | None,
+        experience: str | None,
+        per_page: int,
+        page: int,
 ) -> list[dict[str, str | int]]:
-    """От более строгого к более мягкому (пустая выдача / гео)."""
-    per = min(per_page, 100)
-    pg = max(0, int(page))
+    limit = min(per_page, 100)
+    offset = max(0, int(page)) * limit
 
-    def base(*, currency: bool, exp: str | None) -> dict[str, str | int]:
+    exp_val = None
+    if experience:
+        if "noExperience" in experience:
+            exp_val = "от 0"
+        elif "between1And3" in experience:
+            exp_val = "от 1"
+        elif "between3And6" in experience:
+            exp_val = "от 3"
+        else:
+            exp_val = experience
+
+    def base(*, with_salary: bool, use_exp: str | None, use_area: str | None) -> dict[str, str | int]:
         p: dict[str, str | int] = {
             "text": text,
-            "per_page": per,
-            "page": pg,
-            "only_with_salary": "true",
+            "offset": offset,
+            "limit": limit,
         }
-        if currency:
-            p["currency"] = "RUR"
-        if area:
-            p["area"] = area
-        if exp:
-            p["experience"] = exp
+        if with_salary:
+            p["salary"] = 1
+        if use_area:
+            p["region"] = use_area
+        if use_exp:
+            p["experience"] = use_exp
         return p
 
+    # ИСПРАВЛЕНО: Заменен несуществующий аргумент use_none на use_area
     variants: list[dict[str, str | int]] = [
-        base(currency=True, exp=experience),
-        base(currency=True, exp=None),
-        base(currency=False, exp=None),
+        base(with_salary=True, use_exp=exp_val, use_area=area),
+        base(with_salary=True, use_exp=None, use_area=area),
+        base(with_salary=True, use_exp=None, use_area=None),
     ]
-    # уникальные по содержимому (если experience изначально None)
+
     seen: list[str] = []
     out: list[dict[str, str | int]] = []
     for v in variants:
@@ -91,74 +127,64 @@ def _vacancy_param_variants(
 
 
 async def fetch_vacancies(
-    *,
-    text: str,
-    area: str | None,
-    experience: str | None,
-    per_page: int,
-    page: int = 0,
+        *,
+        text: str,
+        area: str | None,
+        experience: str | None,
+        per_page: int,
+        page: int = 0,
 ) -> tuple[list[dict[str, Any]], str, str | None]:
-    """
-    (items, source, mock_reason)
-    source: 'hh' | 'mock'
-    mock_reason: кратко, почему не данные hh (для UI), если source == 'mock'.
-    """
-    url = f"{settings.hh_base_url.rstrip('/')}/vacancies"
+    base_url = settings.hh_base_url.rstrip("/")
+    url = f"{base_url}/vacancies"
+
     variants = _vacancy_param_variants(
         text=text, area=area, experience=experience, per_page=per_page, page=page
     )
     last_note: str | None = None
 
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
             for params in variants:
                 r = await client.get(url, params=params, headers=_headers())
                 if r.status_code != 200:
-                    last_note = _hh_error_note(r.status_code, r.text)
-                    logger.warning("hh.ru %s params=%s", last_note, params)
+                    last_note = _trudvsem_error_note(r.status_code, r.text)
+                    logger.warning("trudvsem.ru %s params=%s", last_note, params)
                     break
 
                 data = r.json()
-                items = data.get("items") or []
-                if items:
+                results = data.get("results") or {}
+                vacancies_raw = results.get("vacancies") or []
+
+                raw_items = [v.get("vacancy", {}) for v in vacancies_raw if v.get("vacancy")]
+                if raw_items:
+                    items = [_normalize_vacancy(item) for item in raw_items]
                     return items, "hh", None
 
             if last_note is None:
-                last_note = (
-                    "По запросу на hh.ru не найдено вакансий с указанной зарплатой "
-                    "(попробуйте другую роль, регион «Россия» или ослабьте формулировку)."
-                )
+                last_note = "По запросу на ТрудВсем вакансий с зарплатой не найдено."
     except httpx.RequestError as e:
         last_note = f"Сеть: {e}"
-        logger.warning("hh.ru request failed: %s", e)
+        logger.warning("trudvsem.ru request failed: %s", e)
     except Exception as e:
         last_note = f"Ошибка запроса: {e}"
-        logger.warning("hh.ru request failed: %s", e)
+        logger.warning("trudvsem.ru request failed: %s", e)
 
     if settings.use_mock_on_hh_failure:
-        return mock_items(text), "mock", last_note or "hh.ru недоступен."
-    raise RuntimeError(last_note or "hh.ru недоступен.")
+        return mock_items(text), "mock", last_note or "trudvsem.ru недоступен."
+    raise RuntimeError(last_note or "trudvsem.ru недоступен.")
 
 
 async def fetch_areas_flat() -> list[dict[str, str]]:
-    """Top-level regions for UI (id, name)."""
-    url = f"{settings.hh_base_url.rstrip('/')}/areas"
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            r = await client.get(url, headers=_headers())
-            r.raise_for_status()
-            tree = r.json()
-            out: list[dict[str, str]] = []
-            for node in tree:
-                out.append({"id": str(node["id"]), "name": node["name"]})
-            return sorted(out, key=lambda x: x["name"])
-    except Exception as e:
-        logger.warning("areas fetch failed: %s", e)
-        return [
-            {"id": "1", "name": "Москва"},
-            {"id": "2", "name": "Санкт-Петербург"},
-            {"id": "113", "name": "Россия"},
-            {"id": "3", "name": "Екатеринбург"},
-            {"id": "88", "name": "Казань"},
-            {"id": "4", "name": "Новосибирск"},
-        ]
+    """Локальный справочник кодов регионов РФ для обеспечения высокой скорости UI на хакатоне."""
+    return [
+        {"id": "77", "name": "Москва"},
+        {"id": "78", "name": "Санкт-Петербург"},
+        {"id": "66", "name": "Свердловская область"},
+        {"id": "16", "name": "Республика Татарстан"},
+        {"id": "54", "name": "Новосибирская область"},
+        {"id": "50", "name": "Московская область"},
+        {"id": "74", "name": "Челябинская область"},
+        {"id": "52", "name": "Нижегородская область"},
+        {"id": "34", "name": "Волгоградская область"},
+        {"id": "23", "name": "Краснодарский край"},
+    ]
