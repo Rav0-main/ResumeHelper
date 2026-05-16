@@ -1,4 +1,5 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -10,9 +11,102 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="./css/style.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div class="page">
+      <header class="hero">
+        <h1>Рыночная стоимость резюме</h1>
+        <p class="lede">
+          Заполните профиль — сервис подберёт похожие вакансии на <strong>WORK_API</strong>, оценит вилку зарплат и подскажет, что
+          добавить, чтобы выглядеть сильнее на рынке.
+        </p>
+      </header>
+
+      <div class="layout">
+        <section class="card form-card">
+          <h2>Профиль</h2>
+          <form id="assessForm" class="form">
+            <label class="field">
+              <span>Роль / специализация</span>
+              <input id="roleInput" type="text" placeholder="Введите специальность..." required minlength="2" />
+            </label>
+
+            <label class="field">
+              <span>Опыт, лет</span>
+              <input
+                id="yearsInput"
+                type="number"
+                min="0"
+                max="50"
+                step="0.5"
+                value="0"
+              />
+            </label>
+
+            <label class="field">
+              <span>Регион (hh.ru)</span>
+              <select id="areaSelect">
+                <option value="1">Москва</option>
+                <option value="2">Санкт-Петербург</option>
+                <option value="113">Россия</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Навыки (с новой строки или через запятую)</span>
+              <textarea
+                id="skillsInput"
+                rows="6"
+                placeholder="Введите навыки..."></textarea>
+            </label>
+
+            <div class="actions">
+              <button id="submitBtn" type="submit" class="btn primary">
+                <span id="btnText">Оценить</span>
+                <svg id="spinner" class="spinner" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="15.7 47.1" stroke-dashoffset="0" style="animation: spin 1s linear infinite;"></circle>
+                </svg>
+              </button>
+              <button id="recalcBtn" type="button" class="btn ghost" style="display: none;">
+                Пересчитать
+              </button>
+            </div>
+            <p id="errorMsg" class="error" style="display: none;"></p>
+          </form>
+        </section>
+
+        <section class="card results">
+          <h2>Результат</h2>
+          <p id="placeholderText" class="muted">Нажмите «Оценить», чтобы получить вилку и рекомендации на основе вакансий hh.ru.</p>
+          
+          <div id="resultContainer" style="display: none;">
+            <div class="range-grid" id="rangeGrid"></div>
+            <p id="metaInfo" class="meta"></p>
+            <p id="metaWarn" class="meta warn" style="display: none;"></p>
+            <p id="queryInfo" class="meta subtle"></p>
+
+            <h3>Рекомендации</h3>
+            <ul id="recommendationsList" class="recs"></ul>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <style>
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinner {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+        margin-left: 0.5rem;
+      }
+    </style>
+
+    <script src="./js/app.js"></script>
   </body>
 </html>
