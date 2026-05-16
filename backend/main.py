@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from recommendations import get_recommendation
-from parser import get_work_placements
+from placements import get_work_placements
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +27,8 @@ class RecommendationRequest(BaseModel):
     role: str = Field(..., min_length=2, max_length=200)
     years_experience: float = Field(..., ge=0, le=50)
     skills: Annotated[list[str], Field(default_factory=list, max_length=40)]
-    area: str | None = Field(default=None, description="hh.ru area id, e.g. 1 for Moscow")
+    placement: str | None = Field(default=None, description="Placement")
+    resume: str | None = Field(default=None, description="Resume text")
 
 
 @app.get("/api/v1/placements")
@@ -43,10 +44,12 @@ async def recommendations(body: RecommendationRequest) -> dict[str, Any]:
         role=body.role,
         years_experience=body.years_experience,
         skills=skills,
-        area=body.area,
+        placement=body.placement,
         per_page=100,
+        resume=body.resume
     )
     return dict(result.__dict__)
+
 
 if __name__ == "__main__":
     import uvicorn

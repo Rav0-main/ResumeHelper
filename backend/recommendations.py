@@ -62,8 +62,9 @@ async def get_recommendation(
     role: str,
     years_experience: float,
     skills: list[str],
-    area: str | None,
+    placement: str | None,
     per_page: int,
+    resume: str | None
 ) -> Recommendation:
     out = Recommendation(
         salary_range_rub_gross_monthly={"low": 100_000, "median": 200_000, "high": 300_000},

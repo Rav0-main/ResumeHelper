@@ -9,6 +9,7 @@ const rubFormatter = new Intl.NumberFormat("ru-RU", {
 const assessForm = document.getElementById("assessForm");
 const roleInput = document.getElementById("roleInput");
 const yearsInput = document.getElementById("yearsInput");
+const resumeInput = document.getElementById("resumeInput");
 const areaSelect = document.getElementById("areaSelect");
 const skillsInput = document.getElementById("skillsInput");
 const submitBtn = document.getElementById("submitBtn");
@@ -41,7 +42,7 @@ async function fetchPlacements() {
   }
 }
 
-async function get_recommendations_of(payload) {
+async function fetchRecommendationsOf(payload) {
   const response = await fetch("http://127.0.0.1:8000/api/v1/recommendations", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -118,8 +119,7 @@ function displayResults(result) {
   `;
 
   // Display metadata
-  const dataSourceLabel =
-    result.data_source === "hh" ? "hh.ru API" : "демо-набор (API недоступен)";
+  const dataSourceLabel = result.data_source;
   metaInfo.innerHTML = `
     Источник данных: <strong>${dataSourceLabel}</strong>
     · Вакансий: ${result.vacancies_used}, с зарплатой: ${result.vacancies_with_salary}
@@ -171,9 +171,10 @@ async function handleSubmit(e) {
       years_experience: parseFloat(yearsInput.value),
       skills: parseSkills(skillsInput.value),
       area: areaSelect.value || null,
+      resume: resumeInput.value || null
     };
 
-    const result = await get_recommendations_of(payload);
+    const result = await fetchRecommendationsOf(payload);
     displayResults(result);
   } catch (e) {
     const message =
@@ -191,7 +192,7 @@ function handleRecalculate() {
 }
 
 // Load areas on page load
-async function loadAreas() {
+async function loadPlacements() {
   const areas = await fetchPlacements();
   if (areas.length > 0) {
     areaSelect.innerHTML = areas
@@ -208,5 +209,5 @@ recalcBtn.addEventListener("click", handleRecalculate);
 
 // Load areas when page loads
 document.addEventListener("DOMContentLoaded", () => {
-  loadAreas();
+  loadPlacements();
 });
