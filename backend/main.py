@@ -25,7 +25,7 @@ app.add_middleware(
 
 class RecommendationRequest(BaseModel):
     role: str = Field(..., min_length=2, max_length=200)
-    years_experience: float = Field(..., ge=0, le=50)
+    years_experience: int = Field(..., ge=0, le=50)
     skills: Annotated[list[str], Field(default_factory=list, max_length=40)]
     placement: str | None = Field(default=None, description="Placement")
     resume: str | None = Field(default=None, description="Resume text")
@@ -45,7 +45,7 @@ async def recommendations(body: RecommendationRequest) -> dict[str, Any]:
         years_experience=body.years_experience,
         skills=skills,
         placement=body.placement,
-        per_page=100,
+        count=500,
         resume=body.resume
     )
     return dict(result.__dict__)

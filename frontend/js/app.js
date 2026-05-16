@@ -10,7 +10,6 @@ const assessForm = document.getElementById("assessForm");
 const roleInput = document.getElementById("roleInput");
 const yearsInput = document.getElementById("yearsInput");
 const resumeInput = document.getElementById("resumeInput");
-const areaSelect = document.getElementById("areaSelect");
 const skillsInput = document.getElementById("skillsInput");
 const submitBtn = document.getElementById("submitBtn");
 const btnText = document.getElementById("btnText");
@@ -83,7 +82,6 @@ function setLoading(loading) {
   recalcBtn.disabled = loading;
   roleInput.disabled = loading;
   yearsInput.disabled = loading;
-  areaSelect.disabled = loading;
   skillsInput.disabled = loading;
 
   if (loading) {
@@ -135,7 +133,7 @@ function displayResults(result) {
   }
 
   // Display search query
-  queryInfo.textContent = `Запрос к hh.ru: «${result.search_query}»`;
+  queryInfo.textContent = `Запрос к trudvsem.ru: «${result.search_query}»`;
 
   // Display recommendations
   recommendationsList.innerHTML = result.recommendations
@@ -170,7 +168,7 @@ async function handleSubmit(e) {
       role: roleInput.value,
       years_experience: parseFloat(yearsInput.value),
       skills: parseSkills(skillsInput.value),
-      area: areaSelect.value || null,
+      area: null,
       resume: resumeInput.value || null
     };
 
@@ -189,18 +187,6 @@ async function handleSubmit(e) {
 // Handle recalculate button
 function handleRecalculate() {
   handleSubmit(new Event("submit"));
-}
-
-// Load areas on page load
-async function loadPlacements() {
-  const areas = await fetchPlacements();
-  if (areas.length > 0) {
-    areaSelect.innerHTML = areas
-      .map((a) => `<option value="${a.id}">${a.name}</option>`)
-      .join("");
-    // Set default to first area
-    areaSelect.value = areas[0].id;
-  }
 }
 
 // Initialize

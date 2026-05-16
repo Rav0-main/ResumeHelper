@@ -1,6 +1,8 @@
 from typing import Any, Literal
 from dataclasses import dataclass
 
+import services.vacancies as vacancies
+
 Method = Literal["mock"] | Literal["AI"]
 DataSource = Literal["mock"] | Literal["hh.ru"]
 RecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"]
@@ -11,9 +13,9 @@ class Recommendation:
     """
     Словарь зарплат в рублях в месяц:\n
     {
-        "low": int,
-        "median": int,
-        "high": int
+        "low": `int`,
+        "median": `int`,
+        "high": `int`
     }
     """
 
@@ -46,9 +48,9 @@ class Recommendation:
     """
     Словарь рекомендаций для улучшения резюме:\n
     {
-        "title": str,
-        "detail": str,
-        "impact": RecommendationImpact
+        "title": `str`,
+        "detail": `str`,
+        "impact": `RecommendationImpact`
     }
     """
 
@@ -60,19 +62,38 @@ class Recommendation:
 async def get_recommendation(
     *,
     role: str,
-    years_experience: float,
+    years_experience: int,
     skills: list[str],
     placement: str | None,
-    per_page: int,
+    count: int,
     resume: str | None
 ) -> Recommendation:
+    works = await vacancies.fetch(
+        text=role,
+        experience=years_experience,
+        per_page=count,
+        page=0
+    )
+
+    works_number_with_salary = sum(
+        1 for v in works if v.salary_min != 0 or v.salary_max != 0
+    )
+    
+    salaries = [v.salary_max for v in works if v.salary_max != 0]
+    salaries.extend(v.salary_min for v in works if v.salary_min != 0)
+    salaries.sort()
+    
+    median_salary = salaries[len(salaries) // 2] if salaries else 0
+    min_salary = salaries[0] if salaries else 0
+    max_salary = salaries[-1] if salaries else 0
+
     out = Recommendation(
-        salary_range_rub_gross_monthly={"low": 100_000, "median": 200_000, "high": 300_000},
+        salary_range_rub_gross_monthly={"low": min_salary, "median": median_salary, "high": max_salary},
         method="mock",
         data_source="mock",
         data_source_note="This is mock data.",
-        vacancies_used=105,
-        vacancies_with_salary=70,
+        vacancies_used=len(works),
+        vacancies_with_salary=works_number_with_salary,
         recommendations=[
             {
                 "title": "Добавьте навык: Python",
@@ -87,7 +108,7 @@ async def get_recommendation(
                 "skill": "FastAPI",
             }
         ],
-        search_query="hh.ru/api/v1/moneys",
+        search_query=vacancies.VACANCIES_API_URL,
     )
 
     return out
