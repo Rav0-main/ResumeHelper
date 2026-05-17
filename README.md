@@ -73,6 +73,7 @@ ResumeHelper/
 ## 🚪 API-endpoints
 
 - `GET /api/v1/hello_girl` — проверка "живности" сервера.
+
 **Ответ**:
 ```json
 {
@@ -82,6 +83,7 @@ ResumeHelper/
 ```
 
 - `POST /api/v1/recommendations` — получение рекомендации на основе данных.
+
 **Запрос**:
 ```json
 {
@@ -148,24 +150,28 @@ AI_API_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 
 #### API-ключ Gemini
 
-`API-ключ` можно получить с официального сайта Google или [отсюда](#https://aistudio.google.com/apikey?hl=ru&_gl=1*1c3h835*_ga*MTY2NjUyNzAxMC4xNzc5MDE3OTUy*_ga_P1DBVKWT6V*czE3NzkwNDEzODIkbzMkZzEkdDE3NzkwNDE0MTUkajI3JGwwJGgxOTk2MjY1MTY5).
+`API-ключ` можно получить с официального сайта Google.
 
 ### 3. Установка зависимостей backend'a
 
 ```bash
-python -m venv venv
+python3 -m venv .venv # Linux/Mac
+# или python -m venv .venv (Windows)
 
-source venv/bin/activate   # Linux/Mac
-# или .\venv\Scripts\activate  (Windows)
+source .venv/bin/activate   # Linux/Mac
+# или .\.venv\Scripts\activate  (Windows)
 
-pip install -r requirements.txt
+pip3 install -r bakcend/requirements.txt # Linux/Mac
+# или pip install -r requirements.txt  (Windows)
 ```
 
 ### 4. Запуск application-сервера
 
 ```bash
 cd backend
-python main.py
+
+python3 main.py # Linux/Mac
+# или python main.py # (Windows)
 ```
 
 ### 5. Запуск web-сервера
@@ -191,15 +197,6 @@ python main.py
 - Естественный язык без шаблонов.
 - Адаптация под конкретную роль.
 - Возможность объяснить **почему** добавление навыка повлияет на зарплату.
-
----
-
-## 🔮 Перспективы развития
-
-- Автоматическое улучшение резюме (генерация готового текста) 
-- Дашборд сравнения с рынком по городам и грейдам
-- Интеграция с hh.ru – загрузка резюме по ссылке 
-- Мобильное приложение (React Native)
 
 ---
 
