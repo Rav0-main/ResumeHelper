@@ -6,7 +6,9 @@
 > Решение кейса «Заработок» — хакатон Т-Банк × МГТУ им. Н.Э. Баумана 2026
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg)](https://www.python.org)
+
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688.svg)](https://fastapi.tiangolo.com)
 
 ---
@@ -46,18 +48,31 @@ ResumeHelper — бэкенд-сервис, который по введённы
 ## Структура проекта
 
 ResumeHelper/
+
 ├── backend/
+
 │   ├── main.py                    # FastAPI приложение + эндпоинты
+
 │   ├── recommendations.py         # Основная бизнес-логика
+
 │   ├── placements.py              # Справочник регионов
+
 │   └── services/
+
 │       ├── llm.py                 # Работа с LLM (Gemini)
+
 │       ├── vacancies.py           # Поиск вакансий trudvsem.ru
+
 │       └── .env.example
+
 ├── frontend/                      # Статический фронтенд (Nginx)
+
 ├── .env.example
+
 ├── nginx.conf.example
+
 ├── requirements.txt
+
 └── LICENSE
 
 ---
