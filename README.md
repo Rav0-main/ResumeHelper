@@ -6,9 +6,7 @@
 > Решение кейса «Заработок» — хакатон Т-Банк × МГТУ им. Н.Э. Баумана 2026
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg)](https://www.python.org)
-
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688.svg)](https://fastapi.tiangolo.com)
 
 ---
@@ -45,7 +43,7 @@ ResumeHelper — бэкенд-сервис, который по введённы
 
 ---
 
-## 📁 Структура проекта
+## Структура проекта
 
 ```bash
 ResumeHelper/
