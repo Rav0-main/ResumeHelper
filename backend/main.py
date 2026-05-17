@@ -40,7 +40,7 @@ async def placements() -> dict[str, Any]:
 @app.post("/api/v1/recommendations")
 async def recommendations(body: RecommendationRequest) -> dict[str, Any]:
     skills = [s for s in body.skills if isinstance(s, str) and s.strip()]
-    
+
     result = await get_recommendation(
         role=body.role,
         years_experience=body.years_experience,
@@ -49,6 +49,7 @@ async def recommendations(body: RecommendationRequest) -> dict[str, Any]:
         count=500,
         resume=body.resume if body.resume is not None else ""
     )
+    
     return result.__dict__
 
 

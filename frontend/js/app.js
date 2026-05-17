@@ -6,7 +6,7 @@ const rubFormatter = new Intl.NumberFormat("ru-RU", {
 });
 
 // DOM elements
-const assessForm = document.getElementById("assessForm");
+const recommendationsForm = document.getElementById("assessForm");
 const roleInput = document.getElementById("roleInput");
 const yearsInput = document.getElementById("yearsInput");
 const resumeInput = document.getElementById("resumeInput");
@@ -23,23 +23,11 @@ const metaInfo = document.getElementById("metaInfo");
 const metaWarn = document.getElementById("metaWarn");
 const queryInfo = document.getElementById("queryInfo");
 const recommendationsList = document.getElementById("recommendationsList");
+const newResumeContainer = document.getElementById("newResumeContainer");
 
 // App state
 let isLoading = false;
 let currentResult = null;
-
-// API functions
-async function fetchPlacements() {
-  try {
-    const response = await fetch("http://127.0.0.1:8000/api/v1/placements");
-    if (!response.ok) throw new Error("placements_failed");
-    const data = await response.json();
-    return data.items ?? [];
-  } catch (e) {
-    console.error("Failed to fetch placements:", e);
-    return [];
-  }
-}
 
 async function fetchRecommendationsOf(payload) {
   const response = await fetch("http://127.0.0.1:8000/api/v1/recommendations", {
@@ -147,6 +135,14 @@ function displayResults(result) {
       `;
     })
     .join("");
+
+  // Display new resume if available
+  if (result.new_resume) {
+    newResumeContainer.textContent = result.new_resume;
+    newResumeContainer.style.display = "block";
+  } else {
+    newResumeContainer.style.display = "none";
+  }
 }
 
 // Clear results
@@ -190,10 +186,5 @@ function handleRecalculate() {
 }
 
 // Initialize
-assessForm.addEventListener("submit", handleSubmit);
+recommendationsForm.addEventListener("submit", handleSubmit);
 recalcBtn.addEventListener("click", handleRecalculate);
-
-// Load areas when page loads
-document.addEventListener("DOMContentLoaded", () => {
-  loadPlacements();
-});

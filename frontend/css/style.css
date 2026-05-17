@@ -296,3 +296,16 @@ h1 {
 .rec.impact-low {
   border-color: rgba(154, 163, 178, 0.35);
 }
+
+.new-resume {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
