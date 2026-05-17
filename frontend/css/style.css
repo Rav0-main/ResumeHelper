@@ -286,15 +286,15 @@ h1 {
 }
 
 .rec.impact-high {
-  border-color: rgba(255, 221, 45, 0.35);
+  border-color: rgba(255, 51, 0, 0.708);
 }
 
 .rec.impact-medium {
-  border-color: rgba(255, 176, 32, 0.35);
+  border-color: rgba(220, 150, 19, 0.448);
 }
 
 .rec.impact-low {
-  border-color: rgba(154, 163, 178, 0.35);
+  border-color: rgba(85, 209, 114, 0.35);
 }
 
 .new-resume {

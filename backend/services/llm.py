@@ -6,7 +6,7 @@ from pathlib import Path
 from os import getenv
 import re
 
-ENV_FILEPATH = Path(__file__).parent / ".env"
+ENV_FILEPATH = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=ENV_FILEPATH)
 
 CLIENT = OpenAI(

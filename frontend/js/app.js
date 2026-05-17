@@ -1,11 +1,11 @@
-// Currency formatter for Russian Rubles
+"use strict";
+
 const rubFormatter = new Intl.NumberFormat("ru-RU", {
   style: "currency",
   currency: "RUB",
   maximumFractionDigits: 0,
 });
 
-// DOM elements
 const recommendationsForm = document.getElementById("assessForm");
 const roleInput = document.getElementById("roleInput");
 const yearsInput = document.getElementById("yearsInput");
@@ -25,12 +25,12 @@ const queryInfo = document.getElementById("queryInfo");
 const recommendationsList = document.getElementById("recommendationsList");
 const newResumeContainer = document.getElementById("newResumeContainer");
 
-// App state
+//Состояние прилы
 let isLoading = false;
 let currentResult = null;
 
 async function fetchRecommendationsOf(payload) {
-  const response = await fetch("http://127.0.0.1:8000/api/v1/recommendations", {
+  const response = await fetch("/api/v1/recommendations", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -44,7 +44,6 @@ async function fetchRecommendationsOf(payload) {
   return response.json();
 }
 
-// Parse skills from textarea
 function parseSkills(skillsText) {
   return skillsText
     .split(/\n|,|;/)
@@ -52,18 +51,17 @@ function parseSkills(skillsText) {
     .filter(Boolean);
 }
 
-// Display error message
+//Ошибки
 function showError(message) {
   errorMsg.textContent = message;
   errorMsg.style.display = "block";
 }
 
-// Hide error message
 function hideError() {
   errorMsg.style.display = "none";
 }
 
-// Update UI loading state
+//Ожидание (загрузка)
 function setLoading(loading) {
   isLoading = loading;
   submitBtn.disabled = loading;
@@ -81,14 +79,13 @@ function setLoading(loading) {
   }
 }
 
-// Display results
 function displayResults(result) {
   currentResult = result;
   placeholderText.style.display = "none";
   resultContainer.style.display = "block";
   recalcBtn.style.display = "inline-block";
 
-  // Display salary range
+  //Зарплата
   rangeGrid.innerHTML = `
     <div class="range-pill low">
       <span class="lbl">Нижняя граница</span>
@@ -104,7 +101,7 @@ function displayResults(result) {
     </div>
   `;
 
-  // Display metadata
+  //Metadata
   const dataSourceLabel = result.data_source;
   metaInfo.innerHTML = `
     Источник данных: <strong>${dataSourceLabel}</strong>
@@ -112,7 +109,7 @@ function displayResults(result) {
     · Метод: ${result.method}
   `;
 
-  // Display warning if present
+  //Внимание
   if (result.data_source_note) {
     metaWarn.textContent = result.data_source_note;
     metaWarn.style.display = "block";
@@ -120,10 +117,10 @@ function displayResults(result) {
     metaWarn.style.display = "none";
   }
 
-  // Display search query
+  //Запрос
   queryInfo.textContent = `Запрос к trudvsem.ru: «${result.search_query}»`;
 
-  // Display recommendations
+  //Рекомендации
   recommendationsList.innerHTML = result.recommendations
     .map((rec, i) => {
       const impact = rec.impact || "medium";
@@ -136,7 +133,7 @@ function displayResults(result) {
     })
     .join("");
 
-  // Display new resume if available
+  //Исправленное резюме
   if (result.new_resume) {
     newResumeContainer.textContent = result.new_resume;
     newResumeContainer.style.display = "block";
@@ -145,7 +142,6 @@ function displayResults(result) {
   }
 }
 
-// Clear results
 function clearResults() {
   currentResult = null;
   placeholderText.style.display = "block";
@@ -153,7 +149,7 @@ function clearResults() {
   recalcBtn.style.display = "none";
 }
 
-// Handle form submission
+//Загрузка рекомендаций
 async function handleSubmit(e) {
   e.preventDefault();
   hideError();
@@ -171,20 +167,13 @@ async function handleSubmit(e) {
     const result = await fetchRecommendationsOf(payload);
     displayResults(result);
   } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "Ошибка запроса";
-    showError(message);
+    showError("Произошла ошибка. Попробуйте снова.");
     clearResults();
   } finally {
     setLoading(false);
   }
 }
 
-// Handle recalculate button
-function handleRecalculate() {
-  handleSubmit(new Event("submit"));
-}
-
-// Initialize
+//main
 recommendationsForm.addEventListener("submit", handleSubmit);
-recalcBtn.addEventListener("click", handleRecalculate);
+recalcBtn.addEventListener("click", handleSubmit);

@@ -11,8 +11,8 @@ cd backend && python main.py
 
 ## frontend launch
 
-Открыть `index.html` в браузере.
+Поднять Nginx сервер с `nginx.conf.example`
 
 ### TODO
 
-Поднимать nginx сервер для статики.
+Docker
