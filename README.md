@@ -61,7 +61,7 @@ ResumeHelper/
 │   ├── css/style.css
 │   ├── js/app.js
 │   └── index.html
-├── readmedata/ # скриншоты
+├── readmedata/                 # скриншоты
 │ ├── img_1.png
 │ ├── img_2.png
 │ └── img_3.png
@@ -149,9 +149,9 @@ cd ResumeHelper
 ```bash
 FOLDER_ID="ВАШ_FOLDER_ID"
 API_KEY="ВАШ_API_КЛЮЧ"
-YANDEX_MODEL="yandexgpt"          # или другая модель
-YANDEX_TEMPERATURE="0.3"          # опционально
-YANDEX_MAX_TOKENS="2000"          # опционально
+MODEL_NAME="yandexgpt"          # или другая модель
+TEMPERATURE="0.3"               # опционально
+MAX_TOKENS="2000"               # опционально
 ```
 
 > **Как получить**:
