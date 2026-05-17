@@ -21,7 +21,7 @@ http {
         index  index.html;
 
         #Статика с кешированием
-        location ~* \.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        location ~* \.(css|js|ico)$ {
             expires 30d;
             add_header Cache-Control "public, immutable";
         }
