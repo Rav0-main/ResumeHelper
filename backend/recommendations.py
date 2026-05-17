@@ -2,10 +2,10 @@ from typing import Any, Literal
 from dataclasses import dataclass
 
 import services.vacancies as vacancies
+import services.llm as llm
 
 Method = Literal["mock"] | Literal["AI"]
-DataSource = Literal["mock"] | Literal["hh.ru"]
-RecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"]
+DataSource = Literal["mock"] | Literal["trudvsem.ru"]
 
 @dataclass(frozen=True)
 class Recommendation:
@@ -50,9 +50,11 @@ class Recommendation:
     {
         "title": `str`,
         "detail": `str`,
-        "impact": `RecommendationImpact`
+        "impact": `llm.SkillRecommendationImpact`
     }
     """
+
+    new_resume: str
 
     search_query: str
     """
@@ -66,7 +68,7 @@ async def get_recommendation(
     skills: list[str],
     placement: str | None,
     count: int,
-    resume: str | None
+    resume: str
 ) -> Recommendation:
     works = await vacancies.fetch(
         text=role,
@@ -87,28 +89,26 @@ async def get_recommendation(
     min_salary = salaries[0] if salaries else 0
     max_salary = salaries[-1] if salaries else 0
 
-    out = Recommendation(
+    works.sort(reverse=True, key=lambda v: max(v.salary_min, v.salary_max))
+
+    skill_recommendations, new_resume = llm.get_recommendations_by(
+        resume=resume, skills=skills, vacancies=[
+            v.snippet["requirement"] + "\n" + v.snippet["duty"] for v in works[:7]
+        ]
+    )
+
+    recommendation = Recommendation(
         salary_range_rub_gross_monthly={"low": min_salary, "median": median_salary, "high": max_salary},
-        method="mock",
-        data_source="mock",
-        data_source_note="This is mock data.",
+        method="AI",
+        data_source="trudvsem.ru",
+        data_source_note="Создано нейросетью, используйте с осторожностью.",
         vacancies_used=len(works),
         vacancies_with_salary=works_number_with_salary,
         recommendations=[
-            {
-                "title": "Добавьте навык: Python",
-                "detail": "Чаще встречается в более высокооплачиваемых похожих вакансиях на hh.ru.",
-                "impact": "high",
-                "skill": "Python",
-            },
-            {
-                "title": "Добавьте навык: FastAPI",
-                "detail": "Чаще встречается в более высокооплачиваемых похожих вакансиях на hh.ru.",
-                "impact": "medium",
-                "skill": "FastAPI",
-            }
+            s.__dict__ for s in skill_recommendations
         ],
+        new_resume=new_resume,
         search_query=vacancies.VACANCIES_API_URL,
     )
 
-    return out
+    return recommendation

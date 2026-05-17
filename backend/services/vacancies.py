@@ -28,7 +28,7 @@ class Vacancy:
     """
 
 
-    snippet: dict[str, str | None]
+    snippet: dict[str, str]
     """
     Краткое описание вакансии: \n
     {
@@ -42,7 +42,7 @@ class Vacancy:
     Навыки для вакансии.
     """
 
-    experience: int | None
+    experience: int
     """
     Опыт работы.
     """
@@ -71,27 +71,23 @@ def _write_error_note(status: int, body: str) -> str:
         if err:
             return f"trudvsem.ru HTTP {status}: {err}"
     except Exception:
-        pass
+        ...
+
     return f"trudvsem.ru HTTP {status}."
 
 
 def _format_vacancy(v: dict[str, Any]) -> Vacancy:
-    requirement = v.get("requirement", {}).get("education", "")
-    duty = v.get("duty", "")
-
-    skills = v.get("skills", [])
-
     return Vacancy(
         id=str(v.get("id", "")),
         name=v.get("job-name", "Вакансия"),
         salary_min=int(v.get("salary_min", 0)),
         salary_max=int(v.get("salary_max", 0)),
         snippet={
-            "requirement": requirement or None,
-            "duty": duty or None
+            "requirement": v.get("requirement", {}).get("education", ""),
+            "duty": v.get("duty", "")
         },
-        skills=skills,
-        experience=int(v["requirement"].get("experience", 0)) if v.get("requirement", None) is not None else None,
+        skills=v.get("skills", []),
+        experience=int(v["requirement"].get("experience", 0)),
         placement=v.get("region", None)
     )
 
@@ -163,20 +159,3 @@ async def fetch(*,
         logger.warning("Запрос к trudvsem.ru не удался: %s", e)
 
     raise RuntimeError(last_note or "trudvsem.ru недоступен.")
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        items = await fetch(
-            text="Python разработчик",
-            experience=0,
-            per_page=500,
-            page=0
-        )
-        print(f"Получено {len(items)} с {DOMAIN_SOURCE}.")
-
-        for item in items:
-            print(item.salary_min, item.salary_max)
-
-    asyncio.run(main())
