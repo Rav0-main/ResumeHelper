@@ -1,20 +1,34 @@
-from openai import OpenAI
+import re
 from dataclasses import dataclass
 from typing import Literal
 from dotenv import load_dotenv
 from pathlib import Path
 from os import getenv
-import re
+import requests
+
 
 ENV_FILEPATH = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=ENV_FILEPATH)
 
-CLIENT = OpenAI(
-    api_key=getenv("API_KEY"),
-    base_url=getenv("AI_API_URL")
-)
+ACCOUNT_ID = getenv("ACCOUNT_ID")
+API_TOKEN = getenv("API_TOKEN")
+MODEL = getenv("MODEL")
+
+api_base_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/"
+headers = {"Authorization": f"Bearer {API_TOKEN}"}
+
+
+def run_model(model: str, messages: list[dict]) -> str:
+    """Запрос к cloudflare. Возвращает текстовый ответ"""
+    payload = {"messages": messages}
+    response = requests.post(f"{api_base_url}{model}", headers=headers, json=payload)
+    response.raise_for_status()
+    data = response.json()
+    return data["result"]["choices"][0]["message"]["content"]
+
 
 SkillRecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"] | Literal[""]
+
 
 @dataclass(frozen=True)
 class SkillRecommendation:
@@ -24,12 +38,8 @@ class SkillRecommendation:
 
 
 def get_official_profession_of(profession: str) -> str:
-    response = CLIENT.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[
-            {
-            "role": "user",
-            "content": f"""
+    """Официальное название профессии из бытового"""
+    prompt = f"""
     Твоя задача — преобразовать неформальное или бытовое название профессии в её официальное наименование согласно Общероссийскому классификатору профессий рабочих, должностей служащих и тарифных разрядов (ОКПДТР) или Единому квалификационному справочнику (ЕКС).
     Входные данные: пользователь вводит название профессии «по-человечески» (например, «айтишник», «кадровик», «уборщица», «продавец в магазине одежды»).
     
@@ -60,31 +70,22 @@ def get_official_profession_of(profession: str) -> str:
 
     Теперь выполни задание для следующего ввода:
     {profession}
-        """
-            }
-        ]
-    )
+    """
 
-    return response.choices[0].message.content if response.choices[0].message.content is not None \
-        else profession
+    messages = [{"role": "user", "content": prompt}]
+    try:
+        return run_model(MODEL, messages)
+    except Exception:
+        return profession
 
 
 def get_recommendations_by(*,
-    resume: str,
-    skills: list[str],
-    vacancies: list[str]
-) -> tuple[list[SkillRecommendation], str]:
-    vacancy_params: str = f"""
-    """
-    for i, line in enumerate(vacancies, start=1):
-        vacancy_params += f"вакансия {i}: {line}\n"
-
-    response = CLIENT.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[
-        {
-            "role": "user",
-            "content": f"""
+                           resume: str,
+                           skills: list[str],
+                           vacancies: list[str]
+                           ) -> tuple[list[SkillRecommendation], str]:
+    vacancy_params = "\n".join(f"вакансия {i}: {line}" for i, line in enumerate(vacancies, start=1))
+    prompt = f"""
     Ты — эксперт по анализу рынка труда и подбору вакансий.
     Твоя задача — проанализировать разрыв между навыками пользователя и требованиями вакансий,
     после чего предложить от 3-ёх до 7-и наиболее ценных недостающих навыков.
@@ -146,20 +147,25 @@ def get_recommendations_by(*,
     Название навыка пиши с заглавной буквы.
 
     После запятых в формате ставь пробел.
-        """},
-    ])
+    """
 
-    text = response.choices[0].message.content if response.choices[0].message.content is not None \
-        else ""
+    messages = [{"role": "user", "content": prompt}]
+    try:
+        text = run_model(MODEL, messages)
+    except Exception:
+        return [], resume
+
     skills_pattern = r"title:\s*(.+?)\s*\n\s*detail:\s*(.+?)\s*\n\s*impact:\s*(high|medium|low)"
     skill_matches = re.findall(skills_pattern, text, re.IGNORECASE | re.DOTALL)
-    
+
     new_resume_pattern = r"Исправленное резюме:\s*(.*?)(?:\n\s*(?:title|$)|$)"
     new_resume_match = re.search(new_resume_pattern, text, re.DOTALL)
 
-    return ([
-        SkillRecommendation(
-            title, detail, impact
-        )
+    recommendations = [
+        SkillRecommendation(title.strip(), detail.strip(), impact)
         for title, detail, impact in skill_matches
-    ], new_resume_match.group(1).strip() if new_resume_match else resume)
+    ]
+
+    new_resume = new_resume_match.group(1).strip() if new_resume_match else resume
+
+    return recommendations, new_resume
