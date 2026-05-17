@@ -70,7 +70,7 @@ ResumeHelper/
 
 ---
 
-## API-endpoints
+## 🚪 API-endpoints
 
 - `GET /api/v1/hello_girl` — проверка "живности" сервера.
 **Ответ**:
