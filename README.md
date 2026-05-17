@@ -70,6 +70,62 @@ ResumeHelper/
 
 ---
 
+## API-endpoints
+
+- `GET /api/v1/hello_girl` — проверка "живности" сервера.
+**Ответ**:
+```json
+{
+  "title": "Hi. My name is Poli...",
+  "detail": "OK"
+}
+```
+
+- `POST /api/v1/recommendations` — получение рекомендации на основе данных.
+**Запрос**:
+```json
+{
+  "role": String,
+  "years_experience": Integer,
+  "skills": String,
+  "resume": String
+}
+```
+
+**Ответ**:
+- **HTTP 200**
+```json
+{
+  "salary_range_rub_gross_monthly": {
+    "low": Integer,
+    "median": Integer,
+    "high": Integer
+  },
+
+  "method": String,
+  
+  "data_source": String,
+  "data_source_note": String,
+  
+  "vacancies_used": Integer,
+  "vacancies_with_salary": Integer,
+  
+  "recommendations": [
+    {
+      "title": String,
+      "detail": String,
+      "impact": String
+    }
+  ]
+}
+```
+
+- **Иначе**
+
+`Стандартные коды ошибок HTTP.`
+
+---
+
 ## 🚀 Как запустить?
 
 ### 1. Клонирование репозитория
