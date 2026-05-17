@@ -1,47 +1,72 @@
-from openai import OpenAI
+import re
+import os
+import requests
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Literal
 from dotenv import load_dotenv
-from pathlib import Path
-from os import getenv
-import re
 
 SkillRecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"] | Literal[""]
 
-ENV_FILEPATH = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=ENV_FILEPATH)
-
-CLIENT = OpenAI(
-    api_key=getenv("API_KEY"),
-    base_url=getenv("AI_API_URL")
-)
 
 @dataclass(frozen=True)
 class SkillRecommendation:
     title: str
     detail: str
     impact: SkillRecommendationImpact
-    
+
+
+ENV_FILEPATH = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=ENV_FILEPATH)
+
+FOLDER_ID=os.getenv("FOLDER_ID")
+API_KEY=os.getenv("API_KEY")
+MODEL_NAME=os.getenv("MODEL_NAME")
+TEMPERATURE=min(float(os.getenv("TEMPERATURE")), 0.3)
+MAX_TOKENS=min(int(os.getenv("MAX_TOKENS")), 2000)
+
+
+def run_model(messages: list[dict]) -> str:
+    url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+    headers = {
+        "Authorization": f"Api-Key {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    yandex_messages = []
+    for msg in messages:
+        yandex_messages.append({
+            "role": msg["role"],
+            "text": msg["content"]
+        })
+
+    data = {
+        "modelUri": f"gpt://{FOLDER_ID}/{MODEL_NAME}",
+        "completionOptions": {
+            "stream": False,
+            "temperature": TEMPERATURE,
+            "maxTokens": MAX_TOKENS
+        },
+        "messages": yandex_messages
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    result = response.json()
+    return result["result"]["alternatives"][0]["message"]["text"]
+
 
 def get_recommendations_by(*,
     resume: str,
     skills: list[str],
     vacancies: list[str]
 ) -> tuple[list[SkillRecommendation], str]:
-    
-    vacancy_params: str = "\n".join(
-        f"вакансия {i}: {line}" for i, line in enumerate(vacancies, start=1)
-    )
+    vacancy_params = "\n".join(f"вакансия {i}: {line}" for i, line in enumerate(vacancies, start=1))
 
-    response = CLIENT.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[
-        {
-            "role": "user",
-            "content": f"""
+    system_prompt = """
     Ты — эксперт по анализу рынка труда и подбору вакансий.
     Твоя задача — проанализировать разрыв между навыками пользователя и требованиями вакансий,
-    после чего предложить от 3-ёх до 7-и наиболее ценных недостающих навыков.
+    после чего предложить от (3 или 4)-ёх до (7 или 9)-и наиболее ценных недостающих навыков.
     Возможные навыки бери ТОЛЬКО из предложенных вакансий.
     Новые навыки человека не должны совпадать с освоенными.
 
@@ -58,8 +83,8 @@ def get_recommendations_by(*,
     Выбери от 3-ёх до 7-и, которые принесут наибольшую пользу пользователю.
 
     Оцени impact по шкале:
-    high — навык указан как обязательный минимум в 2+ вакансиях или является ключевым для всех трёх вакансий
-    medium — навык указан как желательный/плюс в 2+ вакансиях или обязательный в одной вакансии
+    high — навык указан как обязательный/желательный минимум в 5+ вакансиях
+    medium — навык указан как желательный/плюс в 3+ вакансиях или обязательный в одной вакансии
     low — навык упоминается только в одной вакансии как желательный, либо встречается редко
 
     В поле detail укажи конкретную причину выбора именно этого навыка,
@@ -70,9 +95,10 @@ def get_recommendations_by(*,
     detail: <одно предложение на русском, почему важен навык>
     impact: high|medium|low
 
-    Исправленное резюме: <Полное резюме пользователя, в конец списка "мои навыки"
+    Исправленное резюме: <Полное исправленное резюме пользователя, в которое внесены все рекомендации и улучшения прошлого резюме
     через запятую добавлен рекомендованный навык. Названия навыков — с заглавной буквы. На основе требований к вакансиям измени резюме так,
-    чтобы оно могло удовлетворить большинству вакансий. Не старайся удовлетворить всем, а выбери определенные и измени для них.>
+    чтобы оно могло удовлетворить большинству вакансий. Не старайся удовлетворить всем, а выбери определенные и измени для них.
+    В конце сделай итог, какие задачи может решать пользователь>
 
     Примеры:
     Пример 1 (high):
@@ -135,26 +161,38 @@ def get_recommendations_by(*,
     Название навыка пиши с заглавной буквы.
 
     После запятых в формате ставь пробел.
+    """
 
+    user_message = f"""
     Сделай рекомендации для этого случая:
     Резюме: {resume}
     Мои навыки: {", ".join(skills)}
     Вакансии:
     {vacancy_params}
-        """
-    }])
+    """
 
-    text = response.choices[0].message.content if response.choices[0].message.content is not None \
-        else ""
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    try:
+        text = run_model(messages)
+
+    except Exception as e:
+        print(f"Ошибка при вызове модели: {e}")
+        return ([], resume)
+
     skills_pattern = r"title:\s*(.+?)\s*\n\s*detail:\s*(.+?)\s*\n\s*impact:\s*(high|medium|low)"
     skill_matches = re.findall(skills_pattern, text, re.IGNORECASE | re.DOTALL)
-    
+
     new_resume_pattern = r"Исправленное резюме:\s*(.*?)(?:\n\s*(?:title|$)|$)"
     new_resume_match = re.search(new_resume_pattern, text, re.DOTALL)
 
-    return ([
-        SkillRecommendation(
-            title, detail, impact
-        )
-        for title, detail, impact in skill_matches
-    ], new_resume_match.group(1).strip() if new_resume_match else resume)
+    return (
+        [
+            SkillRecommendation(title.strip(), detail.strip(), impact)
+            for title, detail, impact in skill_matches
+        ], 
+    new_resume_match.group(1).strip() if new_resume_match else resume
+    )
