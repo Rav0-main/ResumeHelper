@@ -95,6 +95,12 @@ async def get_recommendation_of(
         ]
     )
 
+    recommendations: list[dict[str, Any]] = [
+        s.__dict__ for s in skill_recommendations
+    ]
+
+    recommendations.sort(key=lambda x: llm.ImpactMapping.get(x.get("impact"), "low"))
+
     recommendation = Recommendation(
         salary_range_rub_gross_monthly={
             "low": min_salary, "median": median_salary, "high": max_salary
@@ -104,9 +110,7 @@ async def get_recommendation_of(
         data_source_note="Создано нейросетью, используйте с осторожностью.",
         vacancies_used=len(works),
         vacancies_with_salary=works_number_with_salary,
-        recommendations=[
-            s.__dict__ for s in skill_recommendations
-        ],
+        recommendations=recommendations,
         new_resume=new_resume,
         search_query=vacancies.VACANCIES_API_URL,
     )
