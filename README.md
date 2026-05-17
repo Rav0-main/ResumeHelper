@@ -45,35 +45,29 @@ ResumeHelper — бэкенд-сервис, который по введённы
 
 ---
 
-## Структура проекта
+## 📁 Структура проекта
 
+```bash
 ResumeHelper/
-
-├── backend/
-
-│   ├── main.py                    # FastAPI приложение + эндпоинты
-
-│   ├── recommendations.py         # Основная бизнес-логика
-
-│   ├── placements.py              # Справочник регионов
-
-│   └── services/
-
-│       ├── llm.py                 # Работа с LLM (Gemini)
-
-│       ├── vacancies.py           # Поиск вакансий trudvsem.ru
-
-│       └── .env.example
-
-├── frontend/                      # Статический фронтенд (Nginx)
-
+├── backend/                          # Backend-часть (FastAPI)
+│   ├── main.py                       # FastAPI приложение и эндпоинты
+│   ├── recommendations.py            # Основная бизнес-логика
+│   ├── placements.py                 # Статические данные регионов
+│   ├── services/
+│   │   ├── llm.py                    # Сервис работы с LLM (Gemini)
+│   │   ├── vacancies.py              # Сервис поиска вакансий
+│   │   └── .env.example
+│   └── requirements.txt
+│
+├── frontend/                         # Frontend-часть (Vanilla JS)
+│   ├── index.html
+│   ├── css/
+│   └── js/
+│
 ├── .env.example
-
 ├── nginx.conf.example
-
-├── requirements.txt
-
-└── LICENSE
+└── README.md
+```
 
 ---
 
@@ -143,6 +137,5 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 Проект распространяется под лицензией **MIT** (см. файл [LICENSE](LICENSE)).
 
 ---
-
 
 **Сделано на хакатоне Т-Банк × МГТУ им. Баумана 2026**
