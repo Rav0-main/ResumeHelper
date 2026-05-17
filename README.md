@@ -2,7 +2,10 @@
 
 ## backend launch
 
+Попробуйте получить API Gemini или тому подобных openai.
+
 ```
+pip install -r -requirements.txt
 cd backend && python main.py
 ```
 
