@@ -7,7 +7,7 @@ from typing import Literal
 from dotenv import load_dotenv
 
 SkillRecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"] | Literal[""]
-
+ImpactMapping = {"high": 0, "medium": 1, "low": 2}
 
 @dataclass(frozen=True)
 class SkillRecommendation:
