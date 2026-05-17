@@ -61,20 +61,16 @@ class Recommendation:
     Запрос для поиска вакансий.
     """
 
-async def get_recommendation(
+async def get_recommendation_of(
     *,
     role: str,
     years_experience: int,
     skills: list[str],
-    placement: str | None,
-    count: int,
     resume: str
 ) -> Recommendation:
+    
     works = await vacancies.fetch(
-        text=role,
-        experience=years_experience,
-        per_page=count,
-        page=0
+        search_query=role, experience=years_experience
     )
 
     works_number_with_salary = sum(
@@ -89,18 +85,22 @@ async def get_recommendation(
     min_salary = salaries[0] if salaries else 0
     max_salary = salaries[-1] if salaries else 0
 
-    works.sort(reverse=True, key=lambda v: max(v.salary_min, v.salary_max))
+    works.sort(
+        reverse=True, key=lambda v: max(v.salary_min, v.salary_max)
+    )
 
     skill_recommendations, new_resume = llm.get_recommendations_by(
         resume=resume, skills=skills, vacancies=[
-            v.snippet["requirement"] + "\n" + v.snippet["duty"] for v in works[:7]
+            v.snippet["requirement"] + "\n" + v.snippet["duty"] for v in works[:min(12, works_number_with_salary // 4)]
         ]
     )
 
     recommendation = Recommendation(
-        salary_range_rub_gross_monthly={"low": min_salary, "median": median_salary, "high": max_salary},
+        salary_range_rub_gross_monthly={
+            "low": min_salary, "median": median_salary, "high": max_salary
+        },
         method="AI",
-        data_source="trudvsem.ru",
+        data_source=vacancies.DOMAIN_SOURCE,
         data_source_note="Создано нейросетью, используйте с осторожностью.",
         vacancies_used=len(works),
         vacancies_with_salary=works_number_with_salary,

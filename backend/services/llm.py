@@ -6,6 +6,8 @@ from pathlib import Path
 from os import getenv
 import re
 
+SkillRecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"] | Literal[""]
+
 ENV_FILEPATH = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=ENV_FILEPATH)
 
@@ -14,70 +16,22 @@ CLIENT = OpenAI(
     base_url=getenv("AI_API_URL")
 )
 
-SkillRecommendationImpact = Literal["low"] | Literal["medium"] | Literal["high"] | Literal[""]
-
 @dataclass(frozen=True)
 class SkillRecommendation:
     title: str
     detail: str
     impact: SkillRecommendationImpact
-
-
-def get_official_profession_of(profession: str) -> str:
-    response = CLIENT.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[
-            {
-            "role": "user",
-            "content": f"""
-    Твоя задача — преобразовать неформальное или бытовое название профессии в её официальное наименование согласно Общероссийскому классификатору профессий рабочих, должностей служащих и тарифных разрядов (ОКПДТР) или Единому квалификационному справочнику (ЕКС).
-    Входные данные: пользователь вводит название профессии «по-человечески» (например, «айтишник», «кадровик», «уборщица», «продавец в магазине одежды»).
     
-    Правила:
-    На выходе должно быть только официальное название профессии (в именительном падеже, без кавычек, без пояснений, без пометок «возможно» или «например»).
-    Никаких дополнительных слов, предложений, знаков препинания в конце (кроме точки, если это конец названия, но лучше без точки), перечисления вариантов или уточнений.
-    Если бытовое название может соответствовать нескольким официальным должностям — выбери одну, наиболее распространённую и универсальную.
-    Если официального названия не существует (очень редкая или жаргонная профессия) — выведи исходное название без изменений.
-
-    Примеры:
-    Вход: «айтишник»
-    Выход: Специалист по информационным технологиям
-
-    Вход: «кадровик»
-    Выход: Специалист по кадрам
-
-    Вход: «уборщица»
-    Выход: Уборщик служебных помещений
-
-    Вход: «продавец в магазине одежды»
-    Выход: Продавец непродовольственных товаров
-
-    Вход: «повар в детском саду»
-    Выход: Повар
-
-    Вход: «архитектор баз данных» (уже официально)
-    Выход: Архитектор баз данных
-
-    Теперь выполни задание для следующего ввода:
-    {profession}
-        """
-            }
-        ]
-    )
-
-    return response.choices[0].message.content if response.choices[0].message.content is not None \
-        else profession
-
 
 def get_recommendations_by(*,
     resume: str,
     skills: list[str],
     vacancies: list[str]
 ) -> tuple[list[SkillRecommendation], str]:
-    vacancy_params: str = f"""
-    """
-    for i, line in enumerate(vacancies, start=1):
-        vacancy_params += f"вакансия {i}: {line}\n"
+    
+    vacancy_params: str = "\n".join(
+        f"вакансия {i}: {line}" for i, line in enumerate(vacancies, start=1)
+    )
 
     response = CLIENT.chat.completions.create(
         model="gemini-2.5-flash",
