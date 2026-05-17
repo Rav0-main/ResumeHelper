@@ -4,7 +4,7 @@
 > *Сервис, который по резюме предсказывает вилку дохода и даёт персональные рекомендации для роста.*
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Gemini](https://img.shields.io/badge/LLM-Gemini_2.5_Flash-4285F4?logo=google&logoColor=white)](https://aistudio.google.com/apikey?hl=ru&_gl=1*1jdxyoq*_ga*MTY2NjUyNzAxMC4xNzc5MDE3OTUy*_ga_P1DBVKWT6V*czE3NzkwNDEzODIkbzMkZzEkdDE3NzkwNDE0MTUkajI3JGwwJGgxOTk2MjY1MTY5)
+[![YandexGPT](https://img.shields.io/badge/LLM-YandexGPT-FF0000?logo=yandexcloud&logoColor=white)](https://cloud.yandex.ru/ru/services/yandexgpt)
 [![Frontend](https://img.shields.io/badge/HTML5/CSS3/JS-57A1F2?logo=html5)](/frontend/)
 [![nginx](https://img.shields.io/badge/nginx-1.26.2-009639?logo=nginx&logoColor=white&labelColor=1a5b2a)](https://nginx.org)
 
@@ -28,7 +28,7 @@
 
 1. Анализирует твоё резюме (роль, опыт, навыки, резюме).  
 2. Находит **похожие вакансии** в датасете российского рынка.  
-3. Предсказывает **вилку дохода** (от – до руб.)  
+3. Предсказывает **вилку дохода** (от – до руб.)  
 4. Даёт **конкретные рекомендации**, что добавить или изменить.  
 5. Позволяет **пересчитать** результат после правок – вилка растёт!
 
@@ -36,12 +36,12 @@
 
 ## 🛠️ Технологический стек
 
-| Компонент          | Технологии                            |
-|:--------------------:|:---------------------------------------:|
-| **Backend**        | Python 3.12, FastAPI, httpx, Pydantic, OpenAI|
-| **AI**       | Gemini API   |
-| **Данные**         | API Работа России                     |
-| **Frontend**       | HTML5, CSS, Vanilla JS                |
+|     Компонент      |                  Технологии                  |
+|:------------------:|:--------------------------------------------:|
+|    **Backend**     |    Python 3.12, FastAPI, httpx, Pydantic     |
+|       **AI**       |      YandexGPT (через API Yandex Cloud)      |
+|     **Данные**     |              API Работа России               |
+|    **Frontend**    |            HTML5, CSS, Vanilla JS            |
 | **Инфраструктура** | Uvicorn, CORS middleware, env‑конфиги, nginx |
 
 ---
@@ -52,8 +52,8 @@
 ResumeHelper/
 ├── backend/
 │   ├── services/
-│   │   ├── vacancies.py        # обратывает вакансии с trudvsem.ru
-│   │   └── llm.py              # выполняет анализ резюме и даёт рекомендации
+│   │   ├── vacancies.py        # обрабатывает вакансии с trudvsem.ru
+│   │   └── llm.py              # выполняет анализ резюме и даёт рекомендации (YandexGPT)
 │   ├── recommendations.py      # основной контроллер для рекомендаций
 │   ├── main.py                 # обработка запросов
 │   └── requirements.txt        # python зависимости
@@ -142,15 +142,19 @@ cd ResumeHelper
 #### .env
 
 Создайте файл `.env` в корне проекта по примеру из [.env.example](/.env.example).
-Для `Gemini`: 
+Для **YandexGPT** необходимы:
+
 ```bash
+FOLDER_ID="ВАШ_FOLDER_ID"
 API_KEY="ВАШ_API_КЛЮЧ"
-AI_API_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+YANDEX_MODEL="yandexgpt"          # или другая модель
+YANDEX_TEMPERATURE="0.3"          # опционально
+YANDEX_MAX_TOKENS="2000"          # опционально
 ```
 
-#### API-ключ Gemini
-
-`API-ключ` можно получить с официального сайта Google.
+> **Как получить**:
+> - `FOLDER_ID` – идентификатор каталога в [Yandex Cloud](https://console.cloud.yandex.ru/cloud?section=overview).
+> - `API_KEY` – [создайте API-ключ](https://cloud.yandex.ru/docs/iam/operations/api-key/create) для сервисного аккаунта с ролью `ai.languageModels.user`.
 
 ### 3. Установка зависимостей backend'a
 
@@ -161,7 +165,7 @@ python3 -m venv .venv # Linux/Mac
 source .venv/bin/activate   # Linux/Mac
 # или .\.venv\Scripts\activate  (Windows)
 
-pip3 install -r bakcend/requirements.txt # Linux/Mac
+pip3 install -r backend/requirements.txt # Linux/Mac
 # или pip install -r requirements.txt  (Windows)
 ```
 
@@ -183,15 +187,16 @@ python3 main.py # Linux/Mac
 
 ## 🎮 Как использовать (скриншоты)
 
-1. **Форма резюме** – заполните поля (роль, опыт, навыки, регион).
+1. **Форма резюме** – заполните поля (роль, опыт, навыки, резюме).
 2. **Результат** – вилка дохода и список советов
 3. **Улучшайте** – добавьте один недостающий навык, нажмите «Пересчитать».
 
 ---
 
-## 🧪 Генерация рекомендаций через OpenAI
- 
+## 🧪 Генерация рекомендаций через YandexGPT
+
 Промпт формируется из текущего резюме + списка недостающих навыков, найденных в похожих вакансиях.
+Модель вызывается через `https://llm.api.cloud.yandex.net/foundationModels/v1/completion`.
 
 **Преимущества подхода:**  
 - Естественный язык без шаблонов.
@@ -203,7 +208,14 @@ python3 main.py # Linux/Mac
 ## 👥 Команда
 
 > *Сборная УгаБуга*
-> Участники хакатона Т-Банка
+> 
+> [Rav0](https://github.com/Rav0-main)
+> 
+> [Aleksandr](https://github.com/GilderDragon)
+> 
+> [Виктор](https://github.com/skyfomm)
+> 
+> [Julia26047](https://github.com/Julia26047)
 
 ---
 
