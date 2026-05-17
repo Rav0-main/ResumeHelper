@@ -195,17 +195,9 @@ python3 main.py # Linux/Mac
 
 ### Примеры работы сервиса
 
-<div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
-  <div style="text-align: center;">
-    <img src="readmedata/img_1.png" width="280">
-  </div>
-  <div style="text-align: center;">
-    <img src="readmedata/img_2.png" width="280">
-  </div>
-  <div style="text-align: center;">
-    <img src="readmedata/img_3.png" width="280">
-  </div>
-</div>
+![](readmedata/img_1.png)
+![](readmedata/img_2.png)
+![](readmedata/img_3.png)
 
 ---
 
@@ -240,3 +232,5 @@ python3 main.py # Linux/Mac
 MIT – свободно используйте, дорабатывайте, вдохновляйтесь.
 
 ---
+
+Сделано с ❤️ на хакатоне Т-Банк × Бауманка 2026
